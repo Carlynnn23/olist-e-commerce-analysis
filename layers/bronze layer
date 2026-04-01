@@ -1,1 +1,114 @@
+/*
+=============================================================
+Create Database & Schemas & loading data onto bronze layer
+=============================================================
+Script Purpose:
+    This script creates a new database named 'e-commerce-Olist' after checking if it already exists. 
+    If the database exists, it is dropped and recreated. Also, this script sets up three schemas:'bronze','silver'and'gold'.
+	
+WARNING:
+    Running this script will drop the entire 'e-commerce-Olist' database if it exists. 
+    All data in the database will be permanently deleted. Proceed with caution 
+    and ensure you have proper backups before running this script.
+*/
+
+-- Drop and recreate the 'e-commerce-Olist' database --
+DROP DATABASE IF EXISTS e-commerce-Olist;
+CREATE DATABASE e-commerce-Olist;
+
+-- Create schemas --
+CREATE SCHEMA bronze;
+CREATE SCHEMA silver;
+CREATE SCHEMA gold;
+
+-- create tables on bronze layer --
+DROP TABLE IF EXISTS bronze.customers;
+CREATE TABLE bronze.customers (
+	customer_id VARCHAR(50) PRIMARY KEY,
+	customer_unique_id VARCHAR(50),
+	customer_zip_code_prefix VARCHAR(50),
+	customer_city VARCHAR(50),
+	customer_state VARCHAR(50)
+	);
+
+DROP TABLE IF EXISTS bronze.geolocation;
+CREATE TABLE bronze.geolocation(
+	geolocation_zip_code_prefix VARCHAR(50) PRIMARY KEY,
+	geolocation_lat FLOAT,
+	geolocation_lng FLOAT,
+	geolocation_city VARCHAR(50),
+	geolocation_state VARCHAR(50)
+);
+
+DROP TABLE IF EXISTS bronze.order_items;
+CREATE TABLE bronze.order_items(
+	order_id VARCHAR(50) PRIMARY KEY,
+	order_item_id INT,
+	product_id VARCHAR(50),
+	seller_id VARCHAR(50),
+	shipping_limit_date TIMESTAMP,
+	price DECIMAL(10, 2),
+	freight_value DECIMAL(10, 2)
+);
+
+DROP TABLE IF EXISTS bronze.order_payments;
+CREATE TABLE bronze.order_payments(
+	order_id VARCHAR(50) PRIMARY KEY,
+	payment_sequential INT,
+	payment_type VARCHAR(50),
+	payment_installments INT,
+	payment_value DECIMAL(10, 2)
+);
+
+DROP TABLE IF EXISTS bronze.order_reviews;
+CREATE TABLE bronze.order_reviews(
+	review_id VARCHAR(50) PRIMARY KEY,
+	order_id VARCHAR(50),
+	review_score INT,
+	review_comment_title VARCHAR(50),
+	review_comment_message VARCHAR(200),
+	review_creation_date TIMESTAMP,
+	eview_answer_timestamp TIMESTAMP
+	);
+
+DROP TABLE IF EXISTS bronze.orders;
+CREATE TABLE bronze.orders (
+	order_id VARCHAR(50) PRIMARY KEY,
+	customer_id VARCHAR(50),
+	order_status VARCHAR(50),
+	order_purchase_timestamp TIMESTAMP,
+	order_approved_at TIMESTAMP,
+	order_delivered_carrier_date TIMESTAMP,
+	order_delivered_customer_date TIMESTAMP,
+	order_estimated_delivery_date TIMESTAMP
+	);
+
+DROP TABLE IF EXISTS bronze.products;
+CREATE TABLE bronze.products (
+	product_id VARCHAR(50) PRIMARY KEY,
+	product_category_name VARCHAR(50),
+	product_name_lenght INT,
+	product_description_lenght INT,
+	product_photos_qty INT,
+	product_weight_g INT,
+	product_length_cm INT,
+	product_height_cm INT,
+	product_width_cm INT
+	);
+
+DROP TABLE IF EXISTS bronze.sellers;
+CREATE TABLE bronze.sellers (
+	seller_id VARCHAR(50) PRIMARY KEY,
+	seller_zip_code_prefix VARCHAR(50),
+	seller_city VARCHAR(50),
+	seller_state VARCHAR(50)
+	);
+
+DROP TABLE IF EXISTS bronze.products_category_name_translation;
+CREATE TABLE bronze.products_category_name_translation (
+	product_category_name VARCHAR(50),
+	product_category_name_english VARCHAR(50)
+	);
+
+-- load tables onto brownze layer --
 
