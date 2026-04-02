@@ -1,1 +1,55 @@
+/*
+=============================================================
+Data Transformation & Refinement
+Load Data from Bronze layer to Sliver layer
+=============================================================
+Script Purpose:
+    This script performs following function: Type Casting, Standardization, Deduplication, Marking Nulls & Anomalies
+    If the database exists, it is dropped and recreated.
+*/
 
+-- remove accents -- 
+
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
+-- create dimensional tables on silver layer --
+-- create geolocation table on silver layer -- 
+
+DROP TABLE IF EXISTS silver.geolocation;
+CREATE TABLE silver.geolocation AS
+SELECT 
+	TRIM(geolocation_zip_code_prefix) AS zip_code,
+	AVG(geolocation_lat) AS lat,
+	AVG(geolocation_lng) AS lng,
+	MAX(unaccent(LOWER(TRIM(geolocation_city)))) AS city,
+	MAX(geolocation_state) AS state
+FROM bronze.geolocation
+GROUP BY TRIM(geolocation_zip_code_prefix)
+;
+
+-- set primary key to the geolocation table --
+ALTER TABLE silver.geolocation 
+ADD PRIMARY KEY (zip_code);
+
+-- create customers table on silver layer --
+DROP TABLE IF EXISTS silver.customers;
+CREATE TABLE silver.customers AS
+SELECT 	TRIM(customer_id) AS customer_id ,
+		TRIM(customer_unique_id) AS customer_unique_id  ,
+		TRIM(customer_zip_code_prefix) AS zip_code,
+		unaccent(LOWER(TRIM(customer_city))) AS city,
+		UPPER(TRIM(customer_state)) AS state
+FROM bronze.customers;
+ALTER TABLE silver.customers 
+ADD PRIMARY KEY (customer_id);
+
+-- create sellers table on silver layer --
+DROP TABLE IF EXISTS silver.sellers;
+CREATE TABLE silver.sellers AS
+SELECT 	TRIM(seller_id) AS seller_id,
+		TRIM(seller_zip_code_prefix) AS seller_zip_code,
+		unaccent(LOWER(TRIM(seller_city))) AS seller_city,
+		UPPER(TRIM(seller_state)) AS seller_state
+FROM bronze.sellers;
+ALTER TABLE silver.sellers 
+ADD PRIMARY KEY (seller_id);
