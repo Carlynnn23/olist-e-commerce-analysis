@@ -1,6 +1,7 @@
 /*
 =============================================================
-Create Database & Schemas & loading data onto bronze layer
+Create Database & Schemas
+Load Raw Data onto Bronze layer
 =============================================================
 Script Purpose:
     This script creates a new database named 'e-commerce-Olist' after checking if it already exists. 
@@ -33,16 +34,16 @@ CREATE TABLE bronze.customers (
 
 DROP TABLE IF EXISTS bronze.geolocation;
 CREATE TABLE bronze.geolocation(
-	geolocation_zip_code_prefix VARCHAR(50) PRIMARY KEY,
+	geolocation_zip_code_prefix VARCHAR(50),
 	geolocation_lat FLOAT,
 	geolocation_lng FLOAT,
-	geolocation_city VARCHAR(50),
+	geolocation_city VARCHAR(100),
 	geolocation_state VARCHAR(50)
 );
 
 DROP TABLE IF EXISTS bronze.order_items;
 CREATE TABLE bronze.order_items(
-	order_id VARCHAR(50) PRIMARY KEY,
+	order_id VARCHAR(50),
 	order_item_id INT,
 	product_id VARCHAR(50),
 	seller_id VARCHAR(50),
@@ -62,18 +63,18 @@ CREATE TABLE bronze.order_payments(
 
 DROP TABLE IF EXISTS bronze.order_reviews;
 CREATE TABLE bronze.order_reviews(
-	review_id VARCHAR(50) PRIMARY KEY,
+	review_id VARCHAR(50),
 	order_id VARCHAR(50),
 	review_score INT,
 	review_comment_title VARCHAR(50),
-	review_comment_message VARCHAR(200),
+	review_comment_message VARCHAR(500),
 	review_creation_date TIMESTAMP,
 	eview_answer_timestamp TIMESTAMP
 	);
 
 DROP TABLE IF EXISTS bronze.orders;
 CREATE TABLE bronze.orders (
-	order_id VARCHAR(50) PRIMARY KEY,
+	order_id VARCHAR(50),
 	customer_id VARCHAR(50),
 	order_status VARCHAR(50),
 	order_purchase_timestamp TIMESTAMP,
@@ -110,5 +111,84 @@ CREATE TABLE bronze.products_category_name_translation (
 	product_category_name_english VARCHAR(50)
 	);
 
--- load tables onto brownze layer --
+-- load tables to bronze layer --
 
+COPY bronze.customers
+	FROM '/private/tmp/olist-dataset/olist_customers_dataset.csv'
+	WITH ( 
+		FORMAT CSV,
+	    HEADER true, 
+	    DELIMITER ',', 
+		QUOTE '"',
+	    NULL ''
+	);
+
+COPY bronze.geolocation
+	FROM '/private/tmp/olist-dataset/olist_geolocation_dataset.csv'
+	WITH ( 
+		FORMAT CSV,
+	    HEADER true, 
+	    DELIMITER ',', 
+		QUOTE '"',
+	    NULL ''
+	);
+
+COPY bronze.order_items
+	FROM '/private/tmp/olist-dataset/olist_order_items_dataset.csv'
+	WITH ( 
+		FORMAT CSV,
+	    HEADER true, 
+	    DELIMITER ',', 
+		QUOTE '"',
+	    NULL ''
+	);
+
+COPY bronze.order_payments
+	FROM '/private/tmp/olist-dataset/olist_order_payments_dataset.csv'
+	WITH ( 
+		FORMAT CSV,
+	    HEADER true, 
+	    DELIMITER ',', 
+		QUOTE '"',
+	    NULL ''
+	);
+
+COPY bronze.order_reviews
+	FROM '/private/tmp/olist-dataset/olist_order_reviews_dataset.csv'
+	WITH ( 
+		FORMAT CSV,
+	    HEADER true, 
+	    DELIMITER ',', 
+		QUOTE '"',
+	    NULL ''
+	);
+
+COPY bronze.orders
+	FROM '/private/tmp/olist-dataset/olist_orders_dataset.csv'
+	WITH ( 
+		FORMAT CSV,
+	    HEADER true, 
+	    DELIMITER ',', 
+		QUOTE '"',
+	    NULL ''
+	);
+
+COPY bronze.products
+	FROM '/private/tmp/olist-dataset/olist_products_dataset.csv'
+	WITH ( 
+		FORMAT CSV,
+	    HEADER true, 
+	    DELIMITER ',', 
+		QUOTE '"',
+	    NULL ''
+	);
+
+COPY bronze.sellers
+	FROM '/private/tmp/olist-dataset/olist_sellers_dataset.csv'
+	WITH ( 
+		FORMAT CSV,
+	    HEADER true, 
+	    DELIMITER ',', 
+		QUOTE '"',
+	    NULL ''
+	);
