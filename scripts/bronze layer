@@ -111,7 +111,7 @@ CREATE TABLE bronze.products_category_name_translation (
 	product_category_name_english VARCHAR(50)
 	);
 
--- load tables to bronze layer --
+-- load tables onto bronze layer --
 
 COPY bronze.customers
 	FROM '/private/tmp/olist-dataset/olist_customers_dataset.csv'
@@ -185,6 +185,16 @@ COPY bronze.products
 
 COPY bronze.sellers
 	FROM '/private/tmp/olist-dataset/olist_sellers_dataset.csv'
+	WITH ( 
+		FORMAT CSV,
+	    HEADER true, 
+	    DELIMITER ',', 
+		QUOTE '"',
+	    NULL ''
+	);
+
+COPY bronze.products_category_name_translation
+	FROM '/private/tmp/olist-dataset/product_category_name_translation.csv'
 	WITH ( 
 		FORMAT CSV,
 	    HEADER true, 
