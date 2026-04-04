@@ -53,3 +53,24 @@ SELECT 	TRIM(seller_id) AS seller_id,
 FROM bronze.sellers;
 ALTER TABLE silver.sellers 
 ADD PRIMARY KEY (seller_id);
+
+-- create products table and switch language from Portuguese to English on silver layer --
+DROP TABLE IF EXISTS silver.products;
+CREATE TABLE silver.products AS
+SELECT  TRIM(product_id) AS product_id,
+	   	COALESCE(t. product_category_name_english, p.product_category_name,'unknown')AS product_category_name,
+		product_name_lenght AS product_name_length,
+	    product_description_lenght AS product_description_length,
+		product_photos_qty :: FLOAT,
+		product_weight_g :: FLOAT,
+		product_length_cm :: FLOAT,
+		product_height_cm :: FLOAT,
+		product_width_cm :: FLOAT
+FROM bronze.products p
+LEFT JOIN bronze.product_category_name_translation t
+ON p.product_category_name = t.product_category_name
+;
+ALTER TABLE silver.products 
+ADD PRIMARY KEY (product_id);
+
+
