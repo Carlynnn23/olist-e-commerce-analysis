@@ -1,0 +1,17 @@
+/*
+=============================================================
+This script is used for checking data quality
+=============================================================
+
+*/
+-- checking nulls in orders table --
+SELECT 
+COUNT(*) AS total_rows,
+    COUNT(*) - COUNT(order_purchase_timestamp) AS null_purchase,
+    COUNT(*) - COUNT(order_approved_at) AS null_approved,
+    COUNT(*) - COUNT(order_delivered_carrier_date) AS null_carrier,
+    COUNT(*) - COUNT(order_delivered_customer_date) AS null_customer,
+	COUNT(*) - COUNT(order_estimated_delivery_date) AS null_estimated
+FROM bronze.orders;
+
+-- checking blanks and empty strings in orders table --
