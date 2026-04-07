@@ -23,4 +23,9 @@ COUNT(*) AS total_rows,
     COUNT(*) - COUNT(freight_value) AS null_freight_value
 FROM bronze.order_items;
 
+-- checking empty strings in order_payments table --
+SELECT *
+FROM bronze.order_payments 
+WHERE payment_type = '' OR payment_type IS NULL;
+
 
