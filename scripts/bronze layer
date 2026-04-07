@@ -69,7 +69,7 @@ CREATE TABLE bronze.order_reviews(
 	review_comment_title VARCHAR(50),
 	review_comment_message VARCHAR(500),
 	review_creation_date TIMESTAMP,
-	eview_answer_timestamp TIMESTAMP
+	review_answer_timestamp TIMESTAMP
 	);
 
 DROP TABLE IF EXISTS bronze.orders;
