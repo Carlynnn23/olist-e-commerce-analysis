@@ -14,4 +14,13 @@ COUNT(*) AS total_rows,
 	COUNT(*) - COUNT(order_estimated_delivery_date) AS null_estimated
 FROM bronze.orders;
 
--- checking blanks and empty strings in orders table --
+-- checking nulls in order_items table --
+SELECT 
+COUNT(*) AS total_rows,
+	COUNT(*) - COUNT(order_item_id) AS null_item_id,
+    COUNT(*) - COUNT(shipping_limit_date) AS null_shipping_date,
+    COUNT(*) - COUNT(price) AS null_price,
+    COUNT(*) - COUNT(freight_value) AS null_freight_value
+FROM bronze.order_items;
+
+
