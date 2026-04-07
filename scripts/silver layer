@@ -100,7 +100,7 @@ SELECT 	TRIM(order_id)AS order_id,
 		freight_value
 FROM bronze.order_items;
 
--- create order_items table on silver layer --
+-- create order_payments table on silver layer --
 DROP TABLE IF EXISTS silver.order_payments;
 CREATE TABLE silver.order_payments AS
 SELECT 	TRIM(order_id) AS order_id,
