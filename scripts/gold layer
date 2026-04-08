@@ -1,1 +1,23 @@
+/*
+=============================================================
+Data Integration & Aggregation
+Load Data from Sliver layer to Gold layer
+=============================================================
+Script Purpose:
+    This script utilzied star schema to build up joined tables based on sales, customers and products information.
+	These tables are then being examined by EDA and other more advanced analytics methods.
+    If the database exists, it is dropped and recreated.
+*/
 
+-- create dimension (customers) table -- 
+DROP VIEW IF EXISTS gold.customers;
+CREATE VIEW gold.customers AS
+	SELECT  
+		c.customer_id,
+		c.customer_unique_id,
+		c.zip_code,
+		COALESCE(c.city,g.city,'unknown') AS customer_city,
+		COALESCE(c.state,g.state,'unknown') AS customer_state
+FROM silver.customers c
+LEFT JOIN silver.geolocation g 
+ON c.zip_code=g.zip_code
