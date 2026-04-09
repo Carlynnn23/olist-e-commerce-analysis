@@ -22,6 +22,18 @@ FROM silver.customers c
 LEFT JOIN silver.geolocation g 
 ON c.zip_code=g.zip_code
 
+-- create dimension (sellers) view -- 
+DROP VIEW IF EXISTS gold.sellers;
+CREATE VIEW gold.sellers AS
+	SELECT  
+		s.seller_id,
+		s.seller_zip_code,
+		COALESCE(seller_city,g.city,'unknown') AS seller_city,
+		COALESCE(seller_state,g.state,'unknown') AS seller_state
+FROM silver.sellers s
+LEFT JOIN silver.geolocation g 
+ON s.seller_zip_code=g.zip_code
+
 -- create dimension (products) view -- 
 DROP VIEW IF EXISTS gold.products;
 CREATE VIEW gold.products AS
@@ -38,3 +50,25 @@ CREATE VIEW gold.products AS
   FROM silver.order_items o
   LEFT JOIN silver.products p
   ON o.product_id = p.product_id
+
+-- create fact (sales) view -- 		   
+DROP VIEW IF EXISTS gold.sales;
+CREATE VIEW gold.sales AS
+	SELECT i.order_id,
+		   i.order_item_id,
+		   i.product_id,
+		   i.seller_id,
+		   o.customer_id,
+		   o.order_status,
+		   o.order_purchase_timestamp,
+		   o.order_approved_at,
+		   i.shipping_limit_date,
+		   o.order_delivered_carrier_date,
+		   o.order_delivered_customer_date,
+		   o.order_estimated_delivery_date,
+		   i.price,
+		   i.freight_value
+		   
+FROM silver.order_items i
+LEFT JOIN silver.orders o
+ON i.order_id=o.order_id
