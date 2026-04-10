@@ -73,3 +73,52 @@ SELECT order_status,
 FROM gold.obt_sales
 GROUP BY order_status
 ORDER BY COUNT(DISTINCT order_id)
+
+-- For Merchandising Team --
+-- Seasonality: Best-selling Products by Quarter-- 
+WITH quarter_rank AS
+	(SELECT
+		DATE_TRUNC ('quarter', order_purchase_timestamp) AS best_selling_quarter,
+		main_category,
+		sub_category,
+		SUM(price+freight_value)AS total_sales,
+		RANK()OVER(PARTITION BY DATE_TRUNC ('quarter', order_purchase_timestamp)
+		ORDER BY SUM(price+freight_value) DESC
+	    ) AS quarter_category_rank
+FROM gold.obt_sales
+WHERE order_status = 'delivered'
+GROUP BY 1,2,3)
+
+SELECT 
+    best_selling_quarter,
+    main_category,
+	sub_category,
+    total_sales,
+	quarter_category_rank
+FROM quarter_rank
+WHERE quarter_category_rank <= 3  
+ORDER BY best_selling_quarter ASC, quarter_category_rank ASC;
+
+-- Average Order Value -- 
+SELECT 
+    main_category,
+	sub_category,
+    COUNT(DISTINCT order_id) AS total_orders,
+    SUM(price) AS total_revenue,
+    ROUND(SUM(price) / COUNT(DISTINCT order_id), 2) AS aov
+FROM gold.obt_sales
+WHERE order_status = 'delivered'
+GROUP BY 1,2
+ORDER BY aov DESC;
+
+-- Freight-to-Price Ratio --
+SELECT 
+    main_category,
+	sub_category,
+    ROUND(SUM(freight_value) / SUM(price), 2) AS ftp
+FROM gold.obt_sales
+WHERE order_status = 'delivered'
+GROUP BY 1,2
+ORDER BY ftp DESC;
+
+
