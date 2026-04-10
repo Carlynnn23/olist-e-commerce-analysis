@@ -121,4 +121,17 @@ WHERE order_status = 'delivered'
 GROUP BY 1,2
 ORDER BY ftp DESC;
 
+-- Cancellation Rate by Category --
+SELECT 
+    main_category,
+    COUNT(DISTINCT order_id) AS total_orders,
+    COUNT(DISTINCT CASE WHEN order_status = 'canceled' THEN order_id END) AS canceled_orders,
+    ROUND(
+        COUNT(DISTINCT CASE WHEN order_status = 'canceled' THEN order_id END) * 100.0 / 
+        COUNT(DISTINCT order_id), 
+    2) AS cancellation_rate
+FROM gold.obt_sales
+GROUP BY 1
+ORDER BY cancellation_rate DESC;
+
 
