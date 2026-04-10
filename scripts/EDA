@@ -1,9 +1,75 @@
 /*
 =============================================================
+This scripts contains following steps:
+Create an OBT for further analysis
 EDA & Other analytics based on different stakeholders. 
-Starting from GM, Merchandising Team, Logistics Team,Seller Success, Customer Service, Marketing
+Starting from GM, Merchandising, Logistics,Seller Success, Customer Service, to Marketing Teams
 =============================================================
 */
 
+
+-- Create OBT for further analysis -- 
+DROP VIEW gold.obt_sales IF EXISTS
+CREATE VIEW gold.obt_sales AS
+	SELECT s.order_id,
+		   s.order_item_id,
+		   s.product_id,
+		   s.seller_id,
+		   s.customer_id,
+		   c.zip_code,
+		   c.customer_city,
+		   c.customer_state,
+		   se.seller_city,
+		   se.seller_state,
+		   p.category_name,
+		   p.category_main AS main_category,
+		   p.category_sub AS sub_category,
+		   s.order_status,
+		   s.order_purchase_timestamp,
+		   s.order_approved_at,
+		   s.shipping_limit_date,
+		   s.order_delivered_carrier_date,
+		   s.order_delivered_customer_date,
+		   s.order_estimated_delivery_date,
+		   s.price,
+		   s.freight_value,
+		   p.product_weight_g,
+		   p.product_height_cm,
+		   p.product_width_cm
+FROM gold.sales s
+LEFT JOIN gold.customers c
+ON s.customer_id = c.customer_id
+LEFT JOIN gold.sellers se
+ON s.seller_id = se.seller_id
+LEFT JOIN gold.products p
+ON s.product_id = p.product_id
+
+
 -- Key information for GM -- 
--- Gross revenue --
+-- Gross Merchandise Volume --
+SELECT 
+    DATE_TRUNC('month', order_purchase_timestamp) AS order_month,
+    SUM(price + freight_value) AS total_gmv,
+    COUNT(DISTINCT order_id) AS total_orders
+FROM gold.sales
+WHERE order_status = 'delivered'
+GROUP BY 1
+ORDER BY 1 ASC;
+
+-- Top five best selling cities -- 
+SELECT customer_city,
+	   MAX(customer_state),
+SUM(price+freight_value) AS total_sales,
+RANK()OVER(ORDER BY SUM(price+freight_value) DESC) AS city_rank
+FROM gold.obt_sales
+GROUP BY customer_city
+LIMIT 5
+
+-- Order Fulfillment Health --
+SELECT order_status,
+	   COUNT(DISTINCT order_id) AS total_orders,
+	   ROUND
+	   (COUNT(DISTINCT order_id) * 100 / SUM(COUNT(DISTINCT order_id)) OVER(),2)AS percent_total
+FROM gold.obt_sales
+GROUP BY order_status
+ORDER BY COUNT(DISTINCT order_id)
