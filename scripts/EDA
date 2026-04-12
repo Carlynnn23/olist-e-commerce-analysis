@@ -9,13 +9,14 @@ Starting from GM, Merchandising, Logistics,Seller Success, Customer Service, to 
 
 
 -- Create OBT for further analysis -- 
-DROP VIEW gold.obt_sales IF EXISTS
+DROP VIEW IF EXISTS gold.obt_sales 
 CREATE VIEW gold.obt_sales AS
 	SELECT s.order_id,
 		   s.order_item_id,
 		   s.product_id,
 		   s.seller_id,
 		   s.customer_id,
+		   s.customer_unique_id,
 		   c.zip_code,
 		   c.customer_city,
 		   c.customer_state,
@@ -134,4 +135,30 @@ FROM gold.obt_sales
 GROUP BY 1
 ORDER BY cancellation_rate DESC;
 
+-- Category Repurchase Rate -- 
+WITH customer_purchase_history AS (
+    SELECT 
+        customer_unique_id, 
+        main_category,
+		sub_category,
+        COUNT(DISTINCT order_id) AS orders_per_customer
+    FROM gold.obt_sales
+    WHERE order_status = 'delivered'
+    GROUP BY 1, 2, 3
+)
 
+SELECT 
+    main_category,
+	sub_category,
+    COUNT(DISTINCT customer_unique_id) AS total_unique_customers,
+    COUNT(DISTINCT CASE WHEN orders_per_customer > 1 THEN customer_unique_id END) AS returning_customers,
+    ROUND(
+        COUNT(DISTINCT CASE WHEN orders_per_customer > 1 THEN customer_unique_id END) * 100.0 / 
+        COUNT(DISTINCT customer_unique_id), 2) AS repurchase_rate
+
+FROM customer_purchase_history
+GROUP BY 1,2
+HAVING COUNT(DISTINCT customer_unique_id) > 100
+ORDER BY repurchase_rate DESC;
+
+-- For Logistic Team --
