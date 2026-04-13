@@ -162,3 +162,53 @@ HAVING COUNT(DISTINCT customer_unique_id) > 100
 ORDER BY repurchase_rate DESC;
 
 -- For Logistic Team --
+-- On-Time Delivery Rate -- 
+SELECT 
+    customer_state,
+    COUNT(DISTINCT order_id) AS total_delivered_orders,
+    COUNT(DISTINCT CASE WHEN order_delivered_customer_date > order_estimated_delivery_date THEN order_id END) AS late_orders,
+    ROUND(
+        COUNT(DISTINCT CASE WHEN order_delivered_customer_date > order_estimated_delivery_date THEN order_id END) * 100.0 / 
+        COUNT(DISTINCT order_id), 
+    2) AS late_delivery_rate
+
+FROM gold.obt_sales
+WHERE order_status = 'delivered' 
+  AND order_delivered_customer_date IS NOT NULL 
+  AND order_estimated_delivery_date IS NOT NULL
+GROUP BY 1
+HAVING COUNT(DISTINCT order_id) > 100 
+ORDER BY late_delivery_rate DESC;
+
+-- Route Efficieny Analysis-- 
+SELECT 
+    seller_state AS shipping_origin,
+    customer_state AS shipping_destination,
+    ROUND(AVG(EXTRACT(DAY FROM (order_delivered_customer_date - order_purchase_timestamp))), 0) AS avg_delivery_days,
+    ROUND(AVG(freight_value), 2) AS avg_freight_cost,
+    COUNT(*) AS total_orders
+FROM gold.obt_sales
+WHERE order_status = 'delivered'
+  AND order_delivered_customer_date IS NOT NULL
+GROUP BY 1, 2
+HAVING COUNT(*) > 50 
+ORDER BY avg_delivery_days DESC
+LIMIT 5;
+
+-- Lost in Transit --
+SELECT 
+    customer_state AS destination_state,
+    COUNT(DISTINCT CASE WHEN order_delivered_carrier_date IS NOT NULL THEN order_id END) AS total_shipped_packages,
+    COUNT(DISTINCT CASE WHEN order_delivered_carrier_date IS NOT NULL 
+                         AND order_delivered_customer_date IS NULL 
+                         AND order_status IN ('canceled', 'unavailable', 'shipped') THEN order_id END) AS lost_packages,
+   ROUND(
+        COUNT(DISTINCT CASE WHEN order_delivered_carrier_date IS NOT NULL 
+                             AND order_delivered_customer_date IS NULL 
+                             AND order_status IN ('canceled', 'unavailable', 'shipped') THEN order_id END) * 100.0 / 
+        NULLIF(COUNT(DISTINCT CASE WHEN order_delivered_carrier_date IS NOT NULL THEN order_id END), 0), 
+    2) AS package_loss_rate
+FROM gold.obt_sales
+GROUP BY 1
+HAVING COUNT(DISTINCT CASE WHEN order_delivered_carrier_date IS NOT NULL THEN order_id END) > 100
+ORDER BY package_loss_rate DESC;
