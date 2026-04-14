@@ -1,0 +1,105 @@
+/*
+===========================================================================
+This script is used for forming new views for creating dashboard on Power BI
+The views include Customers,Sellers,Products and Fact_Sales.
+===========================================================================
+*/
+
+-- Create Dim_Customers -- 
+CREATE OR REPLACE VIEW gold.dim_customers AS
+WITH customer_stats AS (
+    SELECT 
+        c.customer_unique_id, 
+        COUNT(DISTINCT s.order_id) AS total_orders
+    FROM gold.sales s
+    JOIN gold.customers c ON s.customer_id = c.customer_id
+    WHERE s.order_status = 'delivered' 
+    GROUP BY 1
+)
+SELECT DISTINCT 
+    c.customer_unique_id,
+    c.customer_city,
+    c.customer_state,
+    CASE 
+        WHEN cs.total_orders = 1 THEN 'One-Time'
+        WHEN cs.total_orders = 2 THEN 'Repeat'
+        WHEN cs.total_orders >= 3 THEN 'Loyal'
+        ELSE 'Unknown'
+    END AS customer_segment
+FROM gold.customers c
+LEFT JOIN customer_stats cs
+ON c.customer_unique_id = cs.customer_unique_id;
+
+-- Create Dim_Sellers -- 
+CREATE OR REPLACE VIEW gold.dim_sellers AS
+WITH platform_clock AS (
+    SELECT MAX(order_purchase_timestamp) AS max_date 
+	FROM gold.sales
+),
+seller_stats AS (
+    SELECT 
+        seller_id,
+        EXTRACT(DAY FROM (MAX(order_purchase_timestamp) - MIN(order_purchase_timestamp))) AS lifespan_days,
+        EXTRACT(DAY FROM ( (SELECT max_date FROM platform_clock) - MAX(order_purchase_timestamp) )) AS inactive_days
+    FROM gold.sales
+    WHERE order_status = 'delivered'
+    GROUP BY 1
+)
+SELECT 
+    s.seller_id,
+    s.seller_city,
+    s.seller_state,
+    ss.lifespan_days,
+    CASE 
+        WHEN ss.inactive_days > 90 THEN 'Inactive'
+        WHEN ss.inactive_days BETWEEN 31 AND 90 THEN 'Nearly inactive'
+        ELSE 'Active'
+    END AS seller_status
+FROM gold.sellers s
+LEFT JOIN seller_stats ss ON s.seller_id = ss.seller_id;
+
+-- Create Dim_Products -- 
+CREATE OR REPLACE VIEW gold.dim_products AS
+SELECT 
+    product_id,
+    category_name,
+    category_main AS main_category,
+    category_sub AS sub_category 
+FROM gold.products;
+
+-- Fact_Sales --
+CREATE OR REPLACE VIEW gold.fact_sales AS
+WITH clean_reviews AS (
+    SELECT 
+        order_id,
+        review_score,
+        ROW_NUMBER() OVER(PARTITION BY order_id ORDER BY review_answer_timestamp DESC) AS rn
+    FROM silver.order_reviews
+)
+SELECT 
+    base.order_id,
+    base.order_item_id,
+    c.customer_unique_id, 
+    base.seller_id,
+    base.product_id,
+    base.order_purchase_timestamp,
+    base.price,
+    base.freight_value,
+    EXTRACT(DAY FROM (base.order_delivered_customer_date - base.order_purchase_timestamp)) AS actual_delivery_days,
+    CASE 
+        WHEN base.order_delivered_customer_date > base.order_estimated_delivery_date THEN 1 
+        ELSE 0 
+    END AS is_delayed_flag,
+    r.review_score,
+    CASE 
+        WHEN r.review_score IN (4, 5) THEN 'Promoter (4-5)'
+        WHEN r.review_score = 3 THEN 'Passive (3)'
+        WHEN r.review_score IN (1, 2) THEN 'Detractor (1-2)'
+        ELSE 'Unrated'
+    END AS review_tier
+    
+FROM gold.sales base
+LEFT JOIN gold.customers c ON base.customer_id = c.customer_id 
+LEFT JOIN clean_reviews r ON base.order_id = r.order_id AND r.rn = 1
+WHERE base.order_status = 'delivered'; 
+
