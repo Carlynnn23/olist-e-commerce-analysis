@@ -6,32 +6,47 @@ The views include Customers,Sellers,Products and Fact_Sales.
 */
 
 -- Create Dim_Customers -- 
-CREATE OR REPLACE VIEW gold.dim_customers AS
+DROP VIEW IF EXISTS gold.dim_customers 
+CREATE VIEW gold.dim_customers AS
+
 WITH customer_stats AS (
     SELECT 
         c.customer_unique_id, 
         COUNT(DISTINCT s.order_id) AS total_orders
     FROM gold.sales s
-    JOIN gold.customers c ON s.customer_id = c.customer_id
+    JOIN gold.customers c 
+	ON s.customer_id = c.customer_id
     WHERE s.order_status = 'delivered' 
     GROUP BY 1
-)
-SELECT DISTINCT 
-    c.customer_unique_id,
-    c.customer_city,
-    c.customer_state,
+),
+
+dedup_customers AS (
+    SELECT 
+        customer_unique_id,
+        customer_city,
+        customer_state,
+        ROW_NUMBER() OVER(PARTITION BY customer_unique_id ORDER BY customer_id) AS rn
+    FROM gold.customers)
+
+SELECT 
+    dc.customer_unique_id,
+    dc.customer_city,
+    dc.customer_state,
     CASE 
         WHEN cs.total_orders = 1 THEN 'One-Time'
         WHEN cs.total_orders = 2 THEN 'Repeat'
         WHEN cs.total_orders >= 3 THEN 'Loyal'
         ELSE 'Unknown'
     END AS customer_segment
-FROM gold.customers c
-LEFT JOIN customer_stats cs
-ON c.customer_unique_id = cs.customer_unique_id;
+FROM dedup_customers dc
+LEFT JOIN customer_stats cs 
+ON dc.customer_unique_id = cs.customer_unique_id
+WHERE dc.rn = 1; 
 
 -- Create Dim_Sellers -- 
-CREATE OR REPLACE VIEW gold.dim_sellers AS
+DROP VIEW IF EXISTS gold.dim_sellers
+CREATE VIEW gold.dim_sellers AS
+
 WITH platform_clock AS (
     SELECT MAX(order_purchase_timestamp) AS max_date 
 	FROM gold.sales
@@ -59,13 +74,28 @@ FROM gold.sellers s
 LEFT JOIN seller_stats ss ON s.seller_id = ss.seller_id;
 
 -- Create Dim_Products -- 
-CREATE OR REPLACE VIEW gold.dim_products AS
+DROP VIEW IF EXISTS gold.dim_products
+CREATE VIEW gold.dim_products AS
+WITH dedup_products AS (
+    SELECT 
+        product_id,
+        category_name,
+        category_main AS main_category,
+        category_sub AS sub_category,
+        product_weight_g,
+        ROW_NUMBER() OVER(PARTITION BY product_id ORDER BY product_weight_g DESC) AS rn
+    FROM gold.products
+)
+
 SELECT 
     product_id,
     category_name,
-    category_main AS main_category,
-    category_sub AS sub_category 
-FROM gold.products;
+    main_category,
+    sub_category,
+    ROUND((product_weight_g / 1000)::NUMERIC, 2) AS weight_kg
+FROM dedup_products
+WHERE rn = 1;
+
 
 -- Fact_Sales --
 CREATE OR REPLACE VIEW gold.fact_sales AS
@@ -102,4 +132,3 @@ FROM gold.sales base
 LEFT JOIN gold.customers c ON base.customer_id = c.customer_id 
 LEFT JOIN clean_reviews r ON base.order_id = r.order_id AND r.rn = 1
 WHERE base.order_status = 'delivered'; 
-
