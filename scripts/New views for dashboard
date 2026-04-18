@@ -132,3 +132,16 @@ FROM gold.sales base
 LEFT JOIN gold.customers c ON base.customer_id = c.customer_id 
 LEFT JOIN clean_reviews r ON base.order_id = r.order_id AND r.rn = 1
 WHERE base.order_status = 'delivered'; 
+
+
+/*
+======================================================================
+Some last minute additions 
+======================================================================
+*/
+
+DROP VIEW IF EXISTS gold.payment_method
+CREATE VIEW	gold.payment_method AS
+SELECT order_id,
+	   REPLACE(payment_type, '_', ' ')AS payment_type
+from silver.order_payments
