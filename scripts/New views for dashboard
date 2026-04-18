@@ -136,12 +136,25 @@ WHERE base.order_status = 'delivered';
 
 /*
 ======================================================================
-Some last minute additions 
+Some last-minute additions 
 ======================================================================
 */
 
+-- adding payment type information -- 
 DROP VIEW IF EXISTS gold.payment_method
 CREATE VIEW	gold.payment_method AS
 SELECT order_id,
 	   REPLACE(payment_type, '_', ' ')AS payment_type
 from silver.order_payments
+
+-- adding shippment status information -- 
+DROP VIEW IF EXISTS gold.shippment
+CREATE VIEW gold.shippment AS
+SELECT *
+FROM (
+   	 SELECT *,
+      ROW_NUMBER() OVER (
+      PARTITION BY order_id
+      ORDER BY order_purchase_timestamp DESC
+        ) AS rn
+    FROM silver.orders
